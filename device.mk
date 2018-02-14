@@ -159,6 +159,10 @@ PRODUCT_PACKAGES += \
     libqdMetaData \
     libqdMetaData.system
 
+# Doze
+PRODUCT_PACKAGES += \
+    XiaomiDoze
+
 # Fingerprint sensor
 PRODUCT_PACKAGES += \
     fingerprint.msm8998
