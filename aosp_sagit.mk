@@ -26,7 +26,7 @@ TARGET_BOOT_ANIMATION_RES := 1080
 TARGET_INCLUDE_ARCORE := true
 $(call inherit-product, vendor/aosp/config/common_full_phone.mk)
 
-CUSTOM_BUILD_TYPE=OFFICIAL
+CUSTOM_BUILD_TYPE=UNOFFICIAL
 
 PRODUCT_NAME := aosp_sagit
 PRODUCT_DEVICE := sagit
