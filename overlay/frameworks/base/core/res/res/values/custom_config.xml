@@ -25,6 +25,10 @@
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
+    <bool name="config_proximityCheckOnWake">true</bool>
+    <integer name="config_proximityCheckTimeout">250</integer>
+    <bool name="config_proximityCheckOnWakeEnabledByDefault">true</bool>
+
     <!-- Default value for proximity check on screen wake
          NOTE ! - Enable for devices that have a fast response proximity sensor (ideally < 300ms)
     -->
@@ -35,5 +39,12 @@
     <integer name="config_buttonBrightnessSettingDefault">140</integer>
     <bool name="config_deviceHasVariableButtonBrightness">true</bool>    
     <bool name="config_deviceHasButtonBacklight">true</bool>
+
+    <!-- Is the battery LED intrusive? -->
+    <bool name="config_intrusiveBatteryLed">true</bool>
+
+    <!-- Do the battery/notification LEDs support pulsing?
+         Used to decide if we show pulse settings -->
+    <bool name="config_ledCanPulse">true</bool>
 
 </resources>

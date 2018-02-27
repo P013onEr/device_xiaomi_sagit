@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The CyanogenMod Project
+ * Copyright (c) 2016 The CyanogenMod Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef _QCOM_POWER_FEATURE_H
-#define _QCOM_POWER_FEATURE_H
+package com.cyanogenmod.pocketmode;
 
-#include <hardware/power.h>
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.util.Log;
 
-void set_device_specific_feature(feature_t feature, int state);
+public class BootCompletedReceiver extends BroadcastReceiver {
 
-#endif
+    private static final String TAG = "XiaomiPocketMode";
+
+    @Override
+    public void onReceive(final Context context, Intent intent) {
+        Log.d(TAG, "Starting");
+        context.startService(new Intent(context, PocketModeService.class));
+    }
+}

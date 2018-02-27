@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2016 The CyanogenMod Project
  *               2017 The LineageOS Project
+ * Copyright (c) 2018 The LineageOS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,93 +18,64 @@
 
 package com.cyanogenmod.pocketmode;
 
-import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.os.IBinder;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.util.Log;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.cyanogenmod.pocketmode.utils.FileUtils;
 
-public class PocketModeService extends Service {
-    private static final String TAG = "PocketModeService";
+public class ProximitySensor implements SensorEventListener {
+
     private static final boolean DEBUG = false;
+    private static final String TAG = "PocketModeProximity";
 
-    private static final String CUST_INTENT = "com.cyanogenmod.settings.device.CUST_UPDATE";
-    private static final String CUST_INTENT_EXTRA = "pocketmode_service";
+    private static final String GOODIX_FILE =
+            "/sys/devices/soc/soc:fingerprint_goodix/proximity_state";
+    private static final String FPC1020_FILE =
+            "/sys/devices/soc/soc:fingerprint_fpc/proximity_state";
+    private final String FPC_FILE;
 
-    private static List<BroadcastReceiver> receivers = new ArrayList<BroadcastReceiver>();
+    private SensorManager mSensorManager;
+    private Sensor mSensor;
+    private Context mContext;
 
-    private ProximitySensor mProximitySensor;
+    public ProximitySensor(Context context) {
+        mContext = context;
+        mSensorManager = (SensorManager)
+                mContext.getSystemService(Context.SENSOR_SERVICE);
+        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
 
-    @Override
-    public void onCreate() {
-        if (DEBUG) Log.d(TAG, "Creating service");
-        mProximitySensor = new ProximitySensor(this);
-
-        IntentFilter custFilter = new IntentFilter(CUST_INTENT);
-        registerReceiver(mUpdateReceiver, custFilter);
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        if (DEBUG) Log.d(TAG, "Starting service");
-        return START_STICKY;
-    }
-
-    @Override
-    public void onDestroy() {
-        if (DEBUG) Log.d(TAG, "Destroying service");
-        super.onDestroy();
-        if (receivers.contains(mScreenStateReceiver)) {
-            this.unregisterReceiver(mScreenStateReceiver);
+        if (android.os.Build.DEVICE.equals("sagit")) {
+            FPC_FILE = GOODIX_FILE;
+        } else {
+            FPC_FILE = FPC1020_FILE;
         }
-        this.unregisterReceiver(mUpdateReceiver);
-        mProximitySensor.disable();
     }
 
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
-
-    private void onDisplayOn() {
-        if (DEBUG) Log.d(TAG, "Display on");
-        mProximitySensor.disable();
-    }
-
-    private void onDisplayOff() {
-        if (DEBUG) Log.d(TAG, "Display off");
-        mProximitySensor.enable();
-    }
-
-    private BroadcastReceiver mScreenStateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(Intent.ACTION_SCREEN_ON)) {
-                onDisplayOn();
-            } else if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
-                onDisplayOff();
-            }
+    public void onSensorChanged(SensorEvent event) {
+        boolean isNear = event.values[0] < mSensor.getMaximumRange();
+        if (FileUtils.isFileWritable(GOODIX_FILE)) {
+            FileUtils.writeLine(GOODIX_FILE, isNear ? "1" : "0");
         }
-    };
+    }
 
-    private BroadcastReceiver mUpdateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getBooleanExtra(CUST_INTENT_EXTRA, false)) {
-                IntentFilter screenStateFilter = new IntentFilter(Intent.ACTION_SCREEN_ON);
-                screenStateFilter.addAction(Intent.ACTION_SCREEN_OFF);
-                registerReceiver(mScreenStateReceiver, screenStateFilter);
-                receivers.add(mScreenStateReceiver);
-            } else if (receivers.contains(mScreenStateReceiver)) {
-                unregisterReceiver(mScreenStateReceiver);
-                receivers.remove(mScreenStateReceiver);
-                mProximitySensor.disable();
-            }
-        }
-    };
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        /* Empty */
+    }
+
+    protected void enable() {
+        if (DEBUG) Log.d(TAG, "Enabling");
+        mSensorManager.registerListener(this, mSensor,
+                SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    protected void disable() {
+        if (DEBUG) Log.d(TAG, "Disabling");
+        mSensorManager.unregisterListener(this, mSensor);
+    }
 }

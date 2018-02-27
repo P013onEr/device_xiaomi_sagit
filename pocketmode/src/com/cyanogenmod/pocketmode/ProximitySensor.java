@@ -17,54 +17,68 @@
 
 package com.cyanogenmod.pocketmode;
 
+import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.IBinder;
 import android.util.Log;
 
-import com.cyanogenmod.pocketmode.utils.FileUtils;
-
-public class ProximitySensor implements SensorEventListener {
-
+public class PocketModeService extends Service {
+    private static final String TAG = "PocketModeService";
     private static final boolean DEBUG = false;
-    private static final String TAG = "PocketModeProximity";
 
-    private static final String FP_PROX_NODE = "/sys/devices/soc/soc:fpc_fpc1020/proximity_state";
+    private ProximitySensor mProximitySensor;
 
-    private SensorManager mSensorManager;
-    private Sensor mSensor;
-    private Context mContext;
+    @Override
+    public void onCreate() {
+        if (DEBUG) Log.d(TAG, "Creating service");
+        mProximitySensor = new ProximitySensor(this);
 
-    public ProximitySensor(Context context) {
-        mContext = context;
-        mSensorManager = (SensorManager)
-                mContext.getSystemService(Context.SENSOR_SERVICE);
-        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        IntentFilter screenStateFilter = new IntentFilter(Intent.ACTION_SCREEN_ON);
+        screenStateFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        registerReceiver(mScreenStateReceiver, screenStateFilter);
     }
 
     @Override
-    public void onSensorChanged(SensorEvent event) {
-        boolean isNear = event.values[0] < mSensor.getMaximumRange();
-        if (FileUtils.isFileWritable(FP_PROX_NODE)) {
-            FileUtils.writeLine(FP_PROX_NODE, isNear ? "1" : "0");
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (DEBUG) Log.d(TAG, "Starting service");
+        return START_STICKY;
+    }
+
+    @Override
+    public void onDestroy() {
+        if (DEBUG) Log.d(TAG, "Destroying service");
+        super.onDestroy();
+        this.unregisterReceiver(mScreenStateReceiver);
+        mProximitySensor.disable();
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    private void onDisplayOn() {
+        if (DEBUG) Log.d(TAG, "Display on");
+        mProximitySensor.disable();
+    }
+
+    private void onDisplayOff() {
+        if (DEBUG) Log.d(TAG, "Display off");
+        mProximitySensor.enable();
+    }
+
+    private BroadcastReceiver mScreenStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(Intent.ACTION_SCREEN_ON)) {
+                onDisplayOn();
+            } else if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
+                onDisplayOff();
+            }
         }
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        /* Empty */
-    }
-
-    protected void enable() {
-        if (DEBUG) Log.d(TAG, "Enabling");
-        mSensorManager.registerListener(this, mSensor,
-                SensorManager.SENSOR_DELAY_NORMAL);
-    }
-
-    protected void disable() {
-        if (DEBUG) Log.d(TAG, "Disabling");
-        mSensorManager.unregisterListener(this, mSensor);
-    }
+    };
 }
+
