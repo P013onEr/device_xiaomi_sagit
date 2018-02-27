@@ -160,17 +160,16 @@ on boot
 
     # Wifi firmware reload path
     chown wifi wifi /sys/module/wlan/parameters/fwpath
-    chown wifi wifi /sys/kernel/boot_wlan/boot_wlan
 
 # access permission for Speaker SmartPA
     chmod 0666 /dev/i2c-10
     chmod 0777 /dev/elliptic0
     chmod 0777 /dev/elliptic1
 #install video modules
-   insmod /system/lib/modules/msm-vidc-vmem.ko
-   insmod /system/lib/modules/msm-vidc.ko
-   insmod /system/lib/modules/msm-vidc-dyn-gov.ko
-   insmod /system/lib/modules/msm-vidc-table-gov.ko
+#   insmod /system/lib/modules/msm-vidc-vmem.ko
+#   insmod /system/lib/modules/msm-vidc.ko
+#   insmod /system/lib/modules/msm-vidc-dyn-gov.ko
+#   insmod /system/lib/modules/msm-vidc-table-gov.ko
 
    # Generate bt mac
    start bt-mac-generator
@@ -203,6 +202,12 @@ service bt-mac-generator /system/vendor/bin/bt-mac-generator
     disabled
 
 on charger
+    # Enable UFS powersaving
+    write /sys/devices/soc/1da4000.ufshc/clkscale_enable 1
+    write /sys/devices/soc/1da4000.ufshc/clkgate_enable 1
+    write /sys/devices/soc/1da4000.ufshc/hibern8_on_idle_enable 1
+    write /sys/module/lpm_levels/parameters/sleep_disabled N
+
     write /sys/class/input/input0/enabled 0
     write /sys/class/input/input1/enabled 0
     write /sys/class/input/input2/enabled 0
@@ -507,6 +512,7 @@ service energy-awareness /system/vendor/bin/energy-awareness
     user root
     group system
     oneshot
+    writepid /dev/cpuset/system-background/tasks
 
 service mdtpd /system/vendor/bin/mdtpd
     class late_start
@@ -530,26 +536,26 @@ service qvrd /system/bin/qvrservice
     socket qvrservice stream 0666 system system
     capabilities SYS_NICE
 
-service nv_mac /vendor/bin/nv_mac
-    class main
-    user root
-    group net_raw
-    oneshot
+#service nv_mac /vendor/bin/nv_mac
+#    class main
+#    user root
+#    group net_raw
+#    oneshot
 
 service panel-info-sh /system/vendor/bin/init.panel_info.sh
     class core
     user root
     oneshot
 
-service leds-sh /system/vendor/bin/init.leds.sh
-    class core
-    user root
-    oneshot
+#service leds-sh /system/vendor/bin/init.leds.sh
+#    class core
+#    user root
+#    oneshot
 
-service display_count /system/vendor/bin/display_count
-    class late_start
-    user root
-    group root
+#service display_count /system/vendor/bin/display_count
+#    class late_start
+#    user root
+#    group root
 
 on property:audio.speaker.id=*
    start audio_info
